@@ -1,17 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-</head>
-<body>
-{% if rounds %}
-    {% for round in rounds %}
-        <h1>{{ round }}</h1>
-    {% endfor %}
-{% else %}
-    <h1>Nothing to see here</h1>
-{% endif %}
-</body>
-</html>
+{% extends "rounds/base.html" %}
+{% block content %}
+    {% if rounds %}
+        {% for round in rounds %}
+            <h1>{{ round }}</h1>
+        {% endfor %}
+    {% else %}
+        <h1>Nothing to see here</h1>
+    {% endif %}
+{% endblock content %}

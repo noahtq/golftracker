@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <div>
+        <h2>You have been logged out</h2>
+        <form method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+        </form>
+        <div>
+            <small>
+                <a href="{% url 'login' %}">Login Again</a>
+            </small>
+        </div>
+    </div>
+</body>
+</html>
