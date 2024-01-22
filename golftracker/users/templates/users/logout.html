@@ -7,19 +7,13 @@
 </head>
 <body>
     <div>
-        <form method="POST">
+        <h2>You have been logged out</h2>
+        <form method="POST" action="{% url 'logout' %}">
             {% csrf_token %}
-            <fieldset>
-                <legend>Join Today</legend>
-                {{ form.as_p }}
-            </fieldset>
-            <div>
-                <button type="submit">Sign Up</button>
-            </div>
         </form>
         <div>
             <small>
-                Already have an account? <a href="{% url 'login' %}">Login</a>
+                <a href="{% url 'login' %}">Login Again</a>
             </small>
         </div>
     </div>
