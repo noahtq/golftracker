@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import generic
 from django.core.exceptions import PermissionDenied
+from django.urls import reverse
 from .models import Round
 
 
@@ -43,3 +44,17 @@ class RoundDetailView(LoginRequiredMixin, generic.DetailView):
         if isOwnerOrPublic(self.get_object(), self.request.user) == False:
             raise PermissionDenied()
         return super().get(request, *args, **kwargs)
+    
+
+class RoundUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = Round
+    fields = ['course', 'tees', 'num_of_holes', 'weather_conditions', 'public']
+    template_name = "rounds/round_update.html"
+
+    def form_valid(self, form):
+        form.instance.player = self.request.user
+        return super().form_valid(form)
+    
+    def get_success_url(self) -> str:
+        return reverse('rounds:detail', args=[str(self.get_object().pk)])
+

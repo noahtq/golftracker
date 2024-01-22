@@ -7,4 +7,5 @@
         <p>#{{ score.hole_number }}, Par: {{ score.par }}, Yards: {{ score.yardage }}, Score: <b>{{ score.score }}</b></p>
         {% endfor %}
     </div>
+    <a href="{% url 'rounds:update' round.id %}">Edit this round</a>
 {% endblock content %}
