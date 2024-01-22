@@ -1,0 +1,10 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+    <h1>{{ round.course.name }} - {{ round.datetime }}</h1>    
+    <h2>Tees: {{ round.tees.name }}</h2>
+    <div>
+        {% for score in round.score_set.all %}
+        <p>#{{ score.hole_number }}, Par: {{ score.par }}, Yards: {{ score.yardage }}, Score: <b>{{ score.score }}</b></p>
+        {% endfor %}
+    </div>
+{% endblock content %}

@@ -3,7 +3,7 @@
     <h1>Round Library</h1>    
     <div>
         {% for round in rounds_list %}
-            <h2>{{ forloop.counter }}. {{ round.course.name }} - {{ round.datetime }}</h2>
+            <a href="{% url 'rounds:detail' round.id %}"><h2>{{ forloop.counter }}. {{ round.course.name }} - {{ round.datetime }}</h2></a>
         {% endfor %}
     </div>
 {% endblock content %}
