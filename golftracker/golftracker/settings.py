@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'users.apps.UsersConfig',
     'courselibrary.apps.CourselibraryConfig',
     'rounds.apps.RoundsConfig',
     'django.contrib.admin',
