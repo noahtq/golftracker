@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Library</title>
+</head>
+<body>
+{% if courses %}
+    {% for course in courses %}
+        <h2>{{ course.name }}</h2>
+        {% for tee in course.tee_set.all %}
+            <h3>{{ tee.name }}</h3>
+            {% for hole in tee.hole_set.all %}
+            <p>{{ hole.number }} - Par: {{ hole.par }} - Yards: {{ hole.yards }}</p>
+            {% endfor %}
+        {% endfor %}
+    {% endfor %}
+{% else %}
+    <h1>Sorry there are no courses to display</h1>
+{% endif %}
+</body>
+</html>
