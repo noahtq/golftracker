@@ -3,5 +3,6 @@ from . import views
 
 app_name = "rounds"
 urlpatterns = [
-    path('', views.roundListView, name='dashboard'),
+    path('', views.welcome, name='dashboard'),
+    path('dashboard/', views.dashboard, name='dashboard'),
 ]
