@@ -10,14 +10,14 @@ from .models import Round
 
 
 #Check if user is the owner of the round or the round is public
-def isOwnerOrPublic(round, user):
+def isOwnerOrPublic(round, user) -> bool:
     public = round.public
     owner = round.player
     return owner == user or public
 
 
 #Check if user is the owner of the round
-def isOwner(round, user):
+def isOwner(round, user) -> bool:
     return user == round.player
 
 

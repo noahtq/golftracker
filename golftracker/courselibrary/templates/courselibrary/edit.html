@@ -1,17 +1,18 @@
 {% extends "rounds/base.html" %}
 {% block content %}
-<a href="{% url 'courselibrary:courselibrary' %}">Go back to library</a>
-<h1>EDIT {{ course.name }}</h1>
-<h2>{{ course.location }}</h2>
-<h3>Tees:</h3>
-{% for tee in course.tee_set.all %}
-    <h3>{{ tee.name }}</h3>
-    {% for hole in tee.hole_set.all %}
-    <ul>
-        <li>{{ hole.number }} - Par: {{ hole.par }} - Yards: {{ hole.yards }}</p>
-    </ul>
-    {% endfor %}
-{% endfor %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Edit Course Info</legend>
+        {{ c_form.as_p }}
+        <p>Tees:</p>
+        {% for t_form in t_forms %}
+            {{ t_form.as_p }}
+        {% endfor %}
+    </fieldset>
+    <button type="submit">Update</button>
+</form>
+<a href="{% url 'courselibrary:detail' course.id %}">Return to course page without updating</a>
 <p>Last updated: {{ course.last_updated }}</p>
 <p>Created: {{ course.date_created }}</p>
 <p>Creator: {{ course.creator }}</p>
