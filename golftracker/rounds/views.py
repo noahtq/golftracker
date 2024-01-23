@@ -16,6 +16,11 @@ def isOwnerOrPublic(round, user):
     return owner == user or public
 
 
+#Check if user is the owner of the round
+def isOwner(round, user):
+    return user == round.player
+
+
 def welcome(request):
     return render(request, 'rounds/welcome.html')
 
@@ -45,16 +50,36 @@ class RoundDetailView(LoginRequiredMixin, generic.DetailView):
             raise PermissionDenied()
         return super().get(request, *args, **kwargs)
     
+    # def get_context_data(self, *args, **kwargs: Any) -> dict[str, Any]:
+    #     context = super(RoundDetailView, self).get_context_data(*args, **kwargs)
+    #     context['round']
+
+    
 
 class RoundUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = Round
     fields = ['course', 'tees', 'num_of_holes', 'weather_conditions', 'public']
     template_name = "rounds/round_update.html"
 
-    def form_valid(self, form):
-        form.instance.player = self.request.user
-        return super().form_valid(form)
+    def get(self, request, *args, **kwargs):
+        #Only show page if the round is public or user is the owner of the round
+        if isOwner(self.get_object(), self.request.user) == False:
+            raise PermissionDenied()
+        return super().get(request, *args, **kwargs)
     
     def get_success_url(self) -> str:
         return reverse('rounds:detail', args=[str(self.get_object().pk)])
+    
+
+class RoundDeleteView(LoginRequiredMixin, generic.DeleteView):
+    model = Round
+
+    def get(self, request, *args, **kwargs):
+        #Only show page if the round is public or user is the owner of the round
+        if isOwner(self.get_object(), self.request.user) == False:
+            raise PermissionDenied()
+        return super().get(request, *args, **kwargs)
+    
+    def get_success_url(self) -> str:
+        return reverse('rounds:library')
 
