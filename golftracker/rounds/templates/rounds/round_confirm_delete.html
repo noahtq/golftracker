@@ -1,0 +1,15 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+    <h1>{{ round.course.name }} - {{ round.datetime }}</h1>    
+    <h2>Tees: {{ round.tees.name }}</h2>
+    <h3>Delete Round</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <fieldset>
+            <legend>Delete Round</legend>
+            <h2>Are you sure you would like to delete this round?</h2>
+            <button type="submit">Yes, Delete</button>
+            <a href="{% url 'rounds:detail' round.id %}">Cancel</a>
+        </fieldset>
+    </form>
+{% endblock content %}
