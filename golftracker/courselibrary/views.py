@@ -9,10 +9,11 @@ from .models import Course, Tee, Hole
 from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm
 
 
-#Only allow user to make changes to a course if they
-#   1. Created the course and the course isn't verified
-#   2. Are a staff member
 def canEditCourse(request, course) -> bool:
+    ''' Only allow user to make changes to a course if they
+        1. Created the course and the course isn't verified
+        2. Are a staff member '''
+    
     creator = course.creator
     user = request.user
     is_staff = request.user.is_staff
