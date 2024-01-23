@@ -9,6 +9,11 @@
 <body>
     <header>
         <nav>
+            <div class="navbar navbar-left">
+                <a href="{% url 'rounds:dashboard' %}">Dashboard</a>
+                <a href="{% url 'rounds:library' %}">Round Library</a>
+                <a href="{% url 'courselibrary:courselibrary' %}">Course Library</a>
+            </div>
             <div class="navbar navbar-right">
                 {% if user.is_authenticated %}
                     <a href="{% url 'profile' %}">Profile</a>
