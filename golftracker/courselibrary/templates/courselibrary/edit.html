@@ -6,7 +6,7 @@
         <legend>Edit Course Info</legend>
         {{ c_form.as_p }}
         <p>Tees:</p>
-        {% for t_form in t_forms %}
+        {% for t_form in t_formset %}
             {{ t_form.as_p }}
         {% endfor %}
     </fieldset>

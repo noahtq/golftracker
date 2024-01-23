@@ -3,6 +3,7 @@ from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.forms import formset_factory
 
 from .models import Course, Tee, Hole
 from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm
@@ -49,31 +50,23 @@ def courseEdit(request, course_id):
     if canEditCourse(request, course) == False:
         raise PermissionDenied()
 
+    TeeFormSet = formset_factory(TeeUpdateForm, extra=len(tees))
+
     if request.method == 'POST':
         c_form = CourseUpdateForm(request.POST, instance=course)
-        t_forms = []
-        for tee in tees:
-            t_forms.append(TeeUpdateForm(request.POST, instance=tee))
-        t_forms_valid = True
-        for form in t_forms:
-            if form.is_valid() == False:
-                t_forms_valid == False
-        if c_form.is_valid() and t_forms_valid:
+        t_formset = TeeFormSet(request.POST)
+        if c_form.is_valid() and t_formset.is_valid():
             c_form.save()
-            for form in t_forms:
-                form.save()
             messages.success(request, f'Course successfully update.')
             return redirect('courselibrary:courselibrary')
     else:
         c_form = CourseUpdateForm(instance=course)
-        t_forms = []
-        for tee in tees:
-            t_forms.append(TeeUpdateForm(instance=tee))
+        t_formset = TeeFormSet()
 
     context = {
         'course': course,
         'c_form': c_form,
-        't_forms': t_forms
+        't_formset': t_formset
     }
 
 
