@@ -1,0 +1,19 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+<a href="{% url 'courselibrary:courselibrary' %}">Go back to library</a>
+<h1>EDIT {{ course.name }}</h1>
+<h2>{{ course.location }}</h2>
+<h3>Tees:</h3>
+{% for tee in course.tee_set.all %}
+    <h3>{{ tee.name }}</h3>
+    {% for hole in tee.hole_set.all %}
+    <ul>
+        <li>{{ hole.number }} - Par: {{ hole.par }} - Yards: {{ hole.yards }}</p>
+    </ul>
+    {% endfor %}
+{% endfor %}
+<p>Last updated: {{ course.last_updated }}</p>
+<p>Created: {{ course.date_created }}</p>
+<p>Creator: {{ course.creator }}</p>
+
+{% endblock content %}
