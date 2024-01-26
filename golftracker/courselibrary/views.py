@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
 from .models import Course, Tee, Hole
-from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreateForm
+from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreateForm, TeeCreateForm
 
 
 #HELPER FUNCTIONS
@@ -88,6 +88,33 @@ def courseEdit(request, course_id):
     }
 
     return render(request, 'courselibrary/edit.html', context)
+
+
+@login_required
+def teeCreate(request, course_id):
+    try:
+        course = Course.objects.get(pk=course_id)
+    except Course.DoesNotExist:
+        raise Http404("Course does not exist")
+    if canEditCourse(request, course) == False:
+        raise PermissionDenied()
+    
+    if request.method == 'POST':
+        form = TeeCreateForm(request.POST)
+        if form.is_valid():
+            form.instance.course = course
+            form.save()
+            messages.success(request, f'Tee successfully created.')
+            return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
+    else:
+        form = TeeCreateForm()
+
+    context = {
+        'form': form,
+        'course': course
+    }
+
+    return render(request, 'courselibrary/tee_create.html', context)
 
 
 @login_required
