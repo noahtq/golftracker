@@ -1,0 +1,21 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Edit Course Info</legend>
+        {{ form.as_p }}
+    </fieldset>
+    <button type="submit">Update</button>
+</form>
+<h3>Edit Tees:</h3>
+{%for tee in tees%}
+    <a href="{% url 'courselibrary:tee-edit' tee.id %}">{{ tee.name }}</a>
+{% endfor %}
+<a href="{% url 'courselibrary:tee-create' course.id %}">Add tees</a>
+<a href="{% url 'courselibrary:detail' course.id %}">Return to course page without updating</a>
+<p>Last updated: {{ course.last_updated }}</p>
+<p>Created: {{ course.date_created }}</p>
+<p>Creator: {{ course.creator }}</p>
+
+{% endblock content %}

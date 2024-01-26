@@ -1,0 +1,12 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Create New Course</legend>
+        {{ form.as_p }}
+    </fieldset>
+    <button type="submit">Create</button>
+</form>
+<a href="{% url 'courselibrary:courselibrary' %}">Return to course library</a>
+{% endblock content %}

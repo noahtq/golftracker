@@ -1,0 +1,25 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Edit Tee Info</legend>
+        {{ form.as_p }}
+        {{ hole_formset.management_form }}
+            {% for form in hole_formset %}
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            {{ form.errors }}
+            <ul>#{{ forloop.counter }}
+                <li>Par: {{ form.par }}</li>
+                <li>Yards: {{ form.yards }}</li>
+            </ul>
+            {% endfor %}
+    </fieldset>
+    <button type="submit">Update</button>
+</form>
+<a href="{% url 'courselibrary:tee-delete' tee.id %}">Delete Tees</a>
+<a href="{% url 'courselibrary:edit' course.id %}">Return to course page without updating</a>
+
+{% endblock content %}

@@ -1,0 +1,28 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+<a href="{% url 'courselibrary:courselibrary' %}">Go back to library</a>
+<h1>{{ course.name }}</h1>
+<h2>{{ course.location }}</h2>
+<h3>Tees:</h3>
+{% for tee in course.tee_set.all %}
+    <h3>{{ tee.name }}</h3>
+    {% for hole in tee.hole_set.all %}
+    <ul>
+        <li>{{ hole.number }} - Par: {{ hole.par }} - Yards: {{ hole.yards }}</p>
+    </ul>
+    {% endfor %}
+{% endfor %}
+<p>Last updated: {{ course.last_updated }}</p>
+<p>Created: {{ course.date_created }}</p>
+<p>Creator: {{ course.creator }}</p>
+{% if request.user.is_staff or not course.verified %}
+    {% if request.user.is_staff or course.creator == request.user %}
+        <div>
+            <a href="{% url 'courselibrary:edit' course.id %}">Edit</a>
+            <a href="{% url 'courselibrary:delete' course.id %}">Delete</a>
+        </div>
+    {% endif %}
+{% endif %}
+
+
+{% endblock content %}
