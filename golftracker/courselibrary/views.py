@@ -152,11 +152,7 @@ def teeEdit(request, tee_id):
         if form.is_valid() and hole_formset.is_valid():
             print("HOOOOORAT")
             form.save()
-            
-            hole_instances = hole_formset.save(commit=False)
-            for hole_instance in hole_instances:
-                hole_instance.save()
-
+            hole_formset.save()
             messages.success(request, f'Tee successfully update.')
             return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
     else:
