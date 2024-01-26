@@ -104,6 +104,12 @@ def teeCreate(request, course_id):
         if form.is_valid():
             form.instance.course = course
             form.save()
+
+            #Create hole models associated with Tee
+            num_holes = int(course.num_of_holes)
+            for i in range(num_holes):
+                Hole.objects.create(number = i + 1, par=3, yards=0, tees=form.instance)
+
             messages.success(request, f'Tee successfully created.')
             return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
     else:
