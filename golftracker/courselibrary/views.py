@@ -78,7 +78,7 @@ def courseEdit(request, course_id):
         if form.is_valid():
             form.save()
             messages.success(request, f'Course successfully updated.')
-            return redirect('courselibrary:courselibrary')
+            return redirect(reverse('courselibrary:detail', kwargs={ 'course_id': course_id }))
     else:
         form = CourseUpdateForm(instance=course)
 
