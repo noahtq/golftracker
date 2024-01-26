@@ -146,11 +146,9 @@ def teeEdit(request, tee_id):
     HoleFormset = modelformset_factory(Hole, fields=('par', 'yards'), extra=0)
 
     if request.method == 'POST':
-        print("SCCCATT")
         form = TeeUpdateForm(request.POST, instance=tee)
         hole_formset = HoleFormset(request.POST, queryset=Hole.objects.filter(tees=tee))
         if form.is_valid() and hole_formset.is_valid():
-            print("HOOOOORAT")
             form.save()
             hole_formset.save()
             messages.success(request, f'Tee successfully update.')
