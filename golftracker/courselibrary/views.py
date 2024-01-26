@@ -143,18 +143,30 @@ def teeEdit(request, tee_id):
     if canEditCourse(request, course) == False:
         raise PermissionDenied()
     
+    HoleFormset = modelformset_factory(Hole, fields=('par', 'yards'), extra=0)
+
     if request.method == 'POST':
+        print("SCCCATT")
         form = TeeUpdateForm(request.POST, instance=tee)
-        if form.is_valid():
+        hole_formset = HoleFormset(request.POST, queryset=Hole.objects.filter(tees=tee))
+        if form.is_valid() and hole_formset.is_valid():
+            print("HOOOOORAT")
             form.save()
+            
+            hole_instances = hole_formset.save(commit=False)
+            for hole_instance in hole_instances:
+                hole_instance.save()
+
             messages.success(request, f'Tee successfully update.')
             return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
     else:
         form = TeeUpdateForm(instance=tee)
+        hole_formset = HoleFormset(queryset=Hole.objects.filter(tees=tee))
 
     context = {
         'tee': tee,
         'form': form,
+        'hole_formset': hole_formset,
         'course': course
     }
 
