@@ -106,8 +106,6 @@ def teeCreate(request, course_id):
     if request.method == 'POST':
         form = TeeCreateForm(request.POST)
         hole_formset = HoleFormset(request.POST, queryset=Hole.objects.none())
-        # for i, hole in enumerate(hole_formset):
-        #     hole.number = i + 1
         if form.is_valid() and hole_formset.is_valid():
             form.instance.course = course
             form.save()
@@ -117,11 +115,6 @@ def teeCreate(request, course_id):
                 hole_instance.number = 1
                 hole_instance.tees = form.instance
                 hole_instance.save()
-
-            # #Create hole models associated with Tee
-            # num_holes = int(course.num_of_holes)
-            # for i in range(num_holes):
-            #     Hole.objects.create(number = i + 1, par=3, yards=0, tees=form.instance)
 
             messages.success(request, f'Tee successfully created.')
             return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
