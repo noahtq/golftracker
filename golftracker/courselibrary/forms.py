@@ -1,4 +1,5 @@
 from django import forms
+from django.forms import inlineformset_factory
 from .models import Course, Tee, Hole
 
 
@@ -18,3 +19,5 @@ class HoleUpdateForm(forms.ModelForm):
     class Meta:
         model = Hole
         fields = ['par', 'yards']
+
+TeeFormSet = inlineformset_factory(Course, Tee, fields=('name', 'course_rating', 'slope_rating'), extra=0)

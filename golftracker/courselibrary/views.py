@@ -3,10 +3,10 @@ from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.forms import formset_factory
+from django.forms import formset_factory, inlineformset_factory
 
 from .models import Course, Tee, Hole
-from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm
+from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, TeeFormSet
 
 
 def canEditCourse(request, course) -> bool:
@@ -51,24 +51,26 @@ def courseEdit(request, course_id):
     if canEditCourse(request, course) == False:
         raise PermissionDenied()
 
-    TeeFormSet = formset_factory(TeeUpdateForm, extra=len(tees))
+    # TeeFormSet = formset_factory(TeeUpdateForm, extra=len(tees))
 
     if request.method == 'POST':
         c_form = CourseUpdateForm(request.POST, instance=course)
-        t_formset = TeeFormSet(request.POST)
-        if c_form.is_valid() and t_formset.is_valid():
+        # t_formset = TeeFormSet(request.POST)
+        formset = TeeFormSet(request.POST, request.FILES, instance=course)
+        if c_form.is_valid() and formset.is_valid():
+            print("Was valid")
             c_form.save()
+            formset.save()
             messages.success(request, f'Course successfully update.')
             return redirect('courselibrary:courselibrary')
     else:
         c_form = CourseUpdateForm(instance=course)
-        t_formset = TeeFormSet()
+        formset = TeeFormSet(instance=course)
 
     context = {
         'course': course,
         'c_form': c_form,
-        't_formset': t_formset
+        't_formset': formset
     }
-
 
     return render(request, 'courselibrary/edit.html', context)
