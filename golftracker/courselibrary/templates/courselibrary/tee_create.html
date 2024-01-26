@@ -5,6 +5,15 @@
     <fieldset>
         <legend>Create New Course</legend>
         {{ form.as_p }}
+        {{ hole_formset.management_form }}
+        <table>
+            {% for form in hole_formset %}
+            <ul>#{{ forloop.counter }}
+                <li>Par: {{ form.par }}</li>
+                <li>Yards: {{ form.yards }}</li>
+            </ul>
+            {% endfor %}
+        </table>
     </fieldset>
     <button type="submit">Create</button>
 </form>
