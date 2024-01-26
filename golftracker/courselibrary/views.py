@@ -83,7 +83,7 @@ def courseEdit(request, course_id):
 
     context = {
         'course': course,
-        'c_form': form,
+        'form': form,
         'tees': tees
     }
 
