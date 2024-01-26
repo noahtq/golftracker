@@ -92,6 +92,22 @@ def courseEdit(request, course_id):
 
 
 @login_required
+def courseDelete(request, course_id):
+    try:
+        course = Course.objects.get(pk=course_id)
+    except Course.DoesNotExist:
+        raise Http404("Course does not exist")
+    if canEditCourse(request, course) == False:
+        raise PermissionDenied()
+
+    if request.method == "POST":
+        course.delete()
+        return redirect('courselibrary:courselibrary')
+    else:
+        return render(request, "courselibrary/confirm_course_delete.html", {'course': course})
+
+
+@login_required
 def teeCreate(request, course_id):
     try:
         course = Course.objects.get(pk=course_id)
@@ -165,3 +181,5 @@ def teeEdit(request, tee_id):
     }
 
     return render(request, 'courselibrary/tee_edit.html', context)
+
+

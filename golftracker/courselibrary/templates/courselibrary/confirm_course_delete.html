@@ -1,0 +1,14 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+    <h1>{{ course.name }}</h1>    
+    <h3>Delete Course</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <fieldset>
+            <legend>Delete Course</legend>
+            <h2>Are you sure you would like to delete this course?</h2>
+            <button type="submit">Yes, Delete</button>
+            <a href="{% url 'courselibrary:detail' course.id %}">Cancel</a>
+        </fieldset>
+    </form>
+{% endblock content %}

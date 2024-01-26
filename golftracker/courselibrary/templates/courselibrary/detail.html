@@ -15,9 +15,14 @@
 <p>Last updated: {{ course.last_updated }}</p>
 <p>Created: {{ course.date_created }}</p>
 <p>Creator: {{ course.creator }}</p>
-<div>
-    <a href="{% url 'courselibrary:edit' course.id %}">Edit</a>
-</div>
+{% if request.user.is_staff or not course.verified %}
+    {% if request.user.is_staff or course.creator == request.user %}
+        <div>
+            <a href="{% url 'courselibrary:edit' course.id %}">Edit</a>
+            <a href="{% url 'courselibrary:delete' course.id %}">Delete</a>
+        </div>
+    {% endif %}
+{% endif %}
 
 
 {% endblock content %}
