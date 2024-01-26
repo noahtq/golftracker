@@ -4,10 +4,9 @@ from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.forms import formset_factory, inlineformset_factory
 
 from .models import Course, Tee, Hole
-from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm
+from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreateForm
 
 
 def canEditCourse(request, course) -> bool:
@@ -22,7 +21,7 @@ def canEditCourse(request, course) -> bool:
         return is_staff
     else:
         return creator == user or is_staff
-    
+
 
 @login_required
 def courseList(request):
@@ -32,12 +31,31 @@ def courseList(request):
 
 
 @login_required
+def courseCreate(request):
+    if request.method == 'POST':
+        form = CourseCreateForm(request.POST)
+        if form.is_valid():
+            form.instance.creator = request.user
+            form.save()
+            messages.success(request, f'Course successfully created.')
+            return redirect('courselibrary:courselibrary') #Edit this
+    else:
+        form = CourseCreateForm()
+
+    context = {
+        'form': form
+    }
+    return render(request, 'courselibrary/create.html', context)
+
+
+@login_required
 def courseDetails(request, course_id):
     try:
         course = Course.objects.get(pk=course_id)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
     return render(request, 'courselibrary/detail.html', {'course': course})
+
 
 
 @login_required
@@ -51,17 +69,17 @@ def courseEdit(request, course_id):
         raise PermissionDenied()
 
     if request.method == 'POST':
-        c_form = CourseUpdateForm(request.POST, instance=course)
-        if c_form.is_valid():
-            c_form.save()
-            messages.success(request, f'Course successfully update.')
+        form = CourseUpdateForm(request.POST, instance=course)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Course successfully updated.')
             return redirect('courselibrary:courselibrary')
     else:
-        c_form = CourseUpdateForm(instance=course)
+        form = CourseUpdateForm(instance=course)
 
     context = {
         'course': course,
-        'c_form': c_form,
+        'c_form': form,
         'tees': tees
     }
 

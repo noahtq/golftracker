@@ -4,11 +4,7 @@
     {% csrf_token %}
     <fieldset>
         <legend>Edit Course Info</legend>
-        {{ c_form.as_p }}
-        <p>Tees:</p>
-        {% for t_form in t_formset %}
-            {{ t_form.as_p }}
-        {% endfor %}
+        {{ form.as_p }}
     </fieldset>
     <button type="submit">Update</button>
 </form>

@@ -3,6 +3,12 @@ from django.forms import inlineformset_factory
 from .models import Course, Tee, Hole
 
 
+class CourseCreateForm(forms.ModelForm):
+    class Meta:
+        model = Course
+        fields = ['name', 'location', 'num_of_holes']
+
+
 class CourseUpdateForm(forms.ModelForm):
     class Meta:
         model = Course
