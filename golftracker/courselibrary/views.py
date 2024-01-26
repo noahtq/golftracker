@@ -12,14 +12,13 @@ from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreate
 
 #HELPER FUNCTIONS
 
-def canEditCourse(request, course) -> bool:
+def canEditCourse(user, course) -> bool:
     ''' Only allow user to make changes to a course if they
         1. Created the course and the course isn't verified
         2. Are a staff member '''
     
     creator = course.creator
-    user = request.user
-    is_staff = request.user.is_staff
+    is_staff = user.is_staff
     if course.verified:
         return is_staff
     else:
@@ -70,7 +69,7 @@ def courseEdit(request, course_id):
         tees = Tee.objects.filter(course=course)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
 
     if request.method == 'POST':
@@ -97,7 +96,7 @@ def courseDelete(request, course_id):
         course = Course.objects.get(pk=course_id)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
 
     if request.method == "POST":
@@ -113,7 +112,7 @@ def teeCreate(request, course_id):
         course = Course.objects.get(pk=course_id)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
     
     num_holes = int(course.num_of_holes)
@@ -156,7 +155,7 @@ def teeEdit(request, tee_id):
         raise Http404("Course does not exist")
     except Tee.DoesNotExist:
         raise Http404("Tee does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
     
     HoleFormset = modelformset_factory(Hole, fields=('par', 'yards'), extra=0)
@@ -192,7 +191,7 @@ def teeDelete(request, tee_id):
         raise Http404("Course does not exist")
     except Tee.DoesNotExist:
         raise Http404("Tee does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
 
     if request.method == "POST":
