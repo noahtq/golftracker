@@ -1,0 +1,14 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+    <h1>{{ tee.name }}</h1>    
+    <h3>Delete Tees</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <fieldset>
+            <legend>Delete Tees</legend>
+            <h2>Are you sure you would like to delete these tees?</h2>
+            <button type="submit">Yes, Delete</button>
+            <a href="{% url 'courselibrary:edit' course.id %}">Cancel</a>
+        </fieldset>
+    </form>
+{% endblock content %}

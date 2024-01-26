@@ -183,3 +183,21 @@ def teeEdit(request, tee_id):
     return render(request, 'courselibrary/tee_edit.html', context)
 
 
+@login_required
+def teeDelete(request, tee_id):
+    try:
+        tee = Tee.objects.get(pk=tee_id)
+        course = tee.course
+    except Course.DoesNotExist:
+        raise Http404("Course does not exist")
+    except Tee.DoesNotExist:
+        raise Http404("Tee does not exist")
+    if canEditCourse(request, course) == False:
+        raise PermissionDenied()
+
+    if request.method == "POST":
+        tee.delete()
+        return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
+    else:
+        return render(request, "courselibrary/confirm_tee_delete.html", {'course': course})
+

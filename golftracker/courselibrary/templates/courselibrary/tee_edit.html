@@ -19,6 +19,7 @@
     </fieldset>
     <button type="submit">Update</button>
 </form>
+<a href="{% url 'courselibrary:tee-delete' tee.id %}">Delete Tees</a>
 <a href="{% url 'courselibrary:edit' course.id %}">Return to course page without updating</a>
 
 {% endblock content %}

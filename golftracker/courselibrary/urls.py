@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:course_id>/delete', views.courseDelete, name='delete'),
     path('<int:course_id>/newtee', views.teeCreate, name='tee-create'),
     path('<int:tee_id>/edittee/', views.teeEdit, name='tee-edit'),
+    path('<int:tee_id>/deletetee', views.teeDelete, name='tee-delete'),
 ]
