@@ -1,0 +1,14 @@
+{% extends "rounds/base.html" %}
+{% block content %}
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Edit Tee Info</legend>
+        <p>Tee:</p>
+        {{ form.as_p }}
+    </fieldset>
+    <button type="submit">Update</button>
+</form>
+<a href="{% url 'courselibrary:edit' course.id %}">Return to course page without updating</a>
+
+{% endblock content %}

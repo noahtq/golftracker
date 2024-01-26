@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.decorators import login_required
@@ -6,7 +7,7 @@ from django.contrib import messages
 from django.forms import formset_factory, inlineformset_factory
 
 from .models import Course, Tee, Hole
-from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, TeeFormSet
+from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm
 
 
 def canEditCourse(request, course) -> bool:
@@ -46,31 +47,52 @@ def courseEdit(request, course_id):
         tees = Tee.objects.filter(course=course)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    except Tee.DoesNotExist:
-        raise Http404("Tees don't exist")
     if canEditCourse(request, course) == False:
         raise PermissionDenied()
 
-    # TeeFormSet = formset_factory(TeeUpdateForm, extra=len(tees))
-
     if request.method == 'POST':
         c_form = CourseUpdateForm(request.POST, instance=course)
-        # t_formset = TeeFormSet(request.POST)
-        formset = TeeFormSet(request.POST, request.FILES, instance=course)
-        if c_form.is_valid() and formset.is_valid():
-            print("Was valid")
+        if c_form.is_valid():
             c_form.save()
-            formset.save()
             messages.success(request, f'Course successfully update.')
             return redirect('courselibrary:courselibrary')
     else:
         c_form = CourseUpdateForm(instance=course)
-        formset = TeeFormSet(instance=course)
 
     context = {
         'course': course,
         'c_form': c_form,
-        't_formset': formset
+        'tees': tees
     }
 
     return render(request, 'courselibrary/edit.html', context)
+
+
+@login_required
+def teeEdit(request, tee_id):
+    try:
+        tee = Tee.objects.get(pk=tee_id)
+        course = tee.course
+    except Course.DoesNotExist:
+        raise Http404("Course does not exist")
+    except Tee.DoesNotExist:
+        raise Http404("Tee does not exist")
+    if canEditCourse(request, course) == False:
+        raise PermissionDenied()
+    
+    if request.method == 'POST':
+        form = TeeUpdateForm(request.POST, instance=tee)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Tee successfully update.')
+            return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': course.id }))
+    else:
+        form = TeeUpdateForm(instance=tee)
+
+    context = {
+        'tee': tee,
+        'form': form,
+        'course': course
+    }
+
+    return render(request, 'courselibrary/tee_edit.html', context)
