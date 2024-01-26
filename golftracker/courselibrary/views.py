@@ -9,6 +9,8 @@ from .models import Course, Tee, Hole
 from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreateForm
 
 
+#HELPER FUNCTIONS
+
 def canEditCourse(request, course) -> bool:
     ''' Only allow user to make changes to a course if they
         1. Created the course and the course isn't verified
@@ -22,6 +24,8 @@ def canEditCourse(request, course) -> bool:
     else:
         return creator == user or is_staff
 
+
+#VIEWS
 
 @login_required
 def courseList(request):
@@ -38,7 +42,7 @@ def courseCreate(request):
             form.instance.creator = request.user
             form.save()
             messages.success(request, f'Course successfully created.')
-            return redirect('courselibrary:courselibrary') #Edit this
+            return redirect(reverse('courselibrary:edit', kwargs={ 'course_id': form.instance.id }))
     else:
         form = CourseCreateForm()
 
