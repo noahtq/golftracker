@@ -1,11 +1,11 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth.models import User
 
 from ..models import Course
-from ..views import canEditCourse
+from ..views import canEditCourse, courseList
 
 
-class CanEditCourseHelperFunction(TestCase):
+class CanEditCourseHelperFunctionTestCase(TestCase):
     def setUp(self):
         regular_user = User.objects.create_user(username='testuser', password='12345')
         User.objects.create_user(username='testuser2', password='12345')
@@ -90,3 +90,40 @@ class CanEditCourseHelperFunction(TestCase):
         course = Course.objects.get(name='Edinburgh USA')
         user = User.objects.get(username='staffuser')
         self.assertTrue(canEditCourse(user, course))
+
+
+class CourseListViewTestCase(TestCase):
+    def setUp(self) -> None:
+        regular_user = User.objects.create_user(username='testuser', password='12345')
+        Course.objects.create(name='Cedarholm Golf Course',
+                        location='Roseville, MN',
+                        creator=regular_user, num_of_holes="09")
+        Course.objects.create(name='Island Lake Golf Course',
+                        location='Arden Hills, MN',
+                        creator=regular_user, num_of_holes="09")
+        
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/')
+        self.assertEqual(response.status_code, 302)
+        
+    def test_returns_all_courses(self):
+        """Check that a list of all of the courses is returned as context data"""
+        courses = Course.objects.all()
+
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/')
+        response_courses = response.context['courses']
+
+        self.assertQuerysetEqual(response_courses, courses, ordered=False)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/')
+        self.assertTemplateUsed(response, 'courselibrary/courselibrary.html')
