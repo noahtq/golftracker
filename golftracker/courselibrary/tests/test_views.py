@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 
 from ..models import Course
 from ..views import canEditCourse, courseList
+from ..forms import CourseCreateForm
 
 
 class CanEditCourseHelperFunctionTestCase(TestCase):
@@ -127,3 +128,66 @@ class CourseListViewTestCase(TestCase):
         client.force_login(user)
         response = client.get('/courselibrary/')
         self.assertTemplateUsed(response, 'courselibrary/courselibrary.html')
+
+
+class CourseCreateTestCase(TestCase):
+    def setUp(self) -> None:
+        User.objects.create(username='testuser', password='12345')
+
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/create/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/create/')
+        self.assertTemplateUsed(response, 'courselibrary/create.html')
+
+    def test_sends_form_as_context(self):
+        """Check that the view passes the correct form as context"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/create/')
+        self.assertEquals(type(response.context["form"]), CourseCreateForm)
+
+    def test_posts_creates_course_correctly(self):
+        """Check that the view when posted creates the course object correctly"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        client.post('/courselibrary/create/', {'name': 'Island Lake Golf Course',
+                                                        'location': 'Arden Hills, MN',
+                                                        'num_of_holes': '09'})
+        course = Course.objects.get(name='Island Lake Golf Course')
+        self.assertEqual(course.name, "Island Lake Golf Course")
+        self.assertEqual(course.location, "Arden Hills, MN")
+        self.assertEqual(course.num_of_holes, "09")
+        self.assertEqual(course.creator, user)
+
+    def test_does_not_create_course_when_data_incorrect(self):
+        """Check that the view does not post when passed incorrect data"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        client.post('/courselibrary/create/', {'name': 'Island Lake Golf Course',
+                                                        'location': 'Arden Hills, MN',
+                                                        'num_of_holes': '15'})
+        course = Course.objects.filter(name='Island Lake Golf Course')
+        self.assertQuerySetEqual(course, Course.objects.none())
+
+    def test_that_successful_post_redirects(self):
+        """Check that a successful post redirects users to correct url"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.post('/courselibrary/create/', {'name': 'Island Lake Golf Course',
+                                                        'location': 'Arden Hills, MN',
+                                                        'num_of_holes': '09'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/courselibrary/1/edit')
