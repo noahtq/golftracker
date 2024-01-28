@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.contrib.auth.models import User
 
 from ..models import Course
-from ..views import canEditCourse, courseList
+from ..views import canEditCourse
 from ..forms import CourseCreateForm
 
 
@@ -191,3 +191,43 @@ class CourseCreateTestCase(TestCase):
                                                         'num_of_holes': '09'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/courselibrary/1/edit')
+
+
+class CourseDetailsTestCase(TestCase):
+    def setUp(self) -> None:
+        user = User.objects.create(username='testuser', password='12345')
+        Course.objects.create(name='Cedarholm Golf Course',
+                location='Roseville, MN',
+                creator=user, num_of_holes="09")
+        
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/1/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/')
+        self.assertTemplateUsed(response, 'courselibrary/detail.html')
+
+    def test_raises_404_if_course_does_not_exist(self):
+        """Check that 404 is thrown if the course doesn't exist"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/5/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_passes_correct_course_as_context(self):
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(pk=1)
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/')
+        self.assertEqual(response.context["course"], course)
+
+
