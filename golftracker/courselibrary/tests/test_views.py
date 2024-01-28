@@ -190,7 +190,7 @@ class CourseCreateTestCase(TestCase):
                                                         'location': 'Arden Hills, MN',
                                                         'num_of_holes': '09'})
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/courselibrary/1/edit')
+        self.assertEqual(response.url, '/courselibrary/1/edit/')
 
 
 class CourseDetailsViewTestCase(TestCase):
@@ -243,7 +243,7 @@ class CourseEditViewTestCase(TestCase):
     def test_rejects_unloggedin_user(self):
         """Check that an unlogged in user is redirected"""
         client = Client()
-        response = client.get('/courselibrary/1/edit')
+        response = client.get('/courselibrary/1/edit/')
         self.assertEqual(response.status_code, 302)
 
     def test_renders_correct_template(self):
@@ -251,7 +251,7 @@ class CourseEditViewTestCase(TestCase):
         user = User.objects.get(username='testuser')
         client = Client()
         client.force_login(user)
-        response = client.get('/courselibrary/1/edit')
+        response = client.get('/courselibrary/1/edit/')
         self.assertTemplateUsed(response, 'courselibrary/edit.html')
 
     def test_raises_404_if_course_does_not_exist(self):
@@ -259,7 +259,7 @@ class CourseEditViewTestCase(TestCase):
         user = User.objects.get(username='testuser')
         client = Client()
         client.force_login(user)
-        response = client.get('/courselibrary/5/edit')
+        response = client.get('/courselibrary/5/edit/')
         self.assertEqual(response.status_code, 404)
 
     def test_that_permission_denied_if_cant_edit_course(self):
@@ -268,7 +268,7 @@ class CourseEditViewTestCase(TestCase):
         user = User.objects.create(username='wronguser', password='12345')
         client = Client()
         client.force_login(user)
-        response = client.get('/courselibrary/1/edit')
+        response = client.get('/courselibrary/1/edit/')
         self.assertEqual(response.status_code, 403)
 
     def test_that_correct_context_is_passed(self):
@@ -278,7 +278,7 @@ class CourseEditViewTestCase(TestCase):
         tees = Tee.objects.filter(course=course)
         client = Client()
         client.force_login(user)
-        response = client.get('/courselibrary/1/edit')
+        response = client.get('/courselibrary/1/edit/')
         self.assertEqual(response.context['course'], course)
         self.assertEqual(type(response.context['form']), CourseUpdateForm)
         self.assertQuerySetEqual(response.context['tees'], tees, ordered=False)
@@ -289,7 +289,7 @@ class CourseEditViewTestCase(TestCase):
         user = User.objects.get(username='testuser')
         client = Client()
         client.force_login(user)
-        client.post('/courselibrary/1/edit', {'name': 'Island Lake Golf Course',
+        client.post('/courselibrary/1/edit/', {'name': 'Island Lake Golf Course',
                                                          'location': 'Arden Hills, MN',
                                                          'num_of_holes': '18'})
         course = Course.objects.get(pk=1)
@@ -304,7 +304,7 @@ class CourseEditViewTestCase(TestCase):
         user = User.objects.get(username='testuser')
         client = Client()
         client.force_login(user)
-        client.post('/courselibrary/1/edit', {'name': 'Island Lake Golf Course',
+        client.post('/courselibrary/1/edit/', {'name': 'Island Lake Golf Course',
                                                          'location': 'Arden Hills, MN',
                                                          'num_of_holes': '52'})
         course = Course.objects.get(pk=1)
@@ -315,8 +315,62 @@ class CourseEditViewTestCase(TestCase):
         user = User.objects.get(username='testuser')
         client = Client()
         client.force_login(user)
-        response = client.post('/courselibrary/1/edit', {'name': 'Island Lake Golf Course',
+        response = client.post('/courselibrary/1/edit/', {'name': 'Island Lake Golf Course',
                                                          'location': 'Arden Hills, MN',
                                                          'num_of_holes': '18'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/courselibrary/1/')
+
+
+class CourseDeleteViewTestCase(TestCase):
+    def setUp(self) -> None:
+        user = User.objects.create(username='testuser', password='12345')
+        course = Course.objects.create(name='Cedarholm Golf Course',
+                location='Roseville, MN',
+                creator=user, num_of_holes="09")
+        Tee.objects.create(name='White', course=course)
+        Tee.objects.create(name='Red', course=course)
+
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/1/delete/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/delete/')
+        self.assertTemplateUsed(response, 'courselibrary/confirm_course_delete.html')
+
+    def test_raises_404_if_course_does_not_exist(self):
+        """Check that 404 is thrown if the course doesn't exist"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/5/delete/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_that_permission_denied_if_cant_edit_course(self):
+        """Check that permission is denied if user does not have permission 
+        to edit course per the canEditCourse() function"""
+        user = User.objects.create(username='wronguser', password='12345')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/delete/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_that_course_and_tees_deleted_if_post_is_successful(self):
+        """Check that if the user posts the form, that the course is deleted
+        from the database and the associated tees are deleted as well"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        client.post('/courselibrary/1/delete/')
+        courses = Course.objects.all()
+        tees = Tee.objects.all()
+        self.assertQuerySetEqual(courses, Course.objects.none())
+        self.assertQuerySetEqual(tees, Tee.objects.none())
+    
