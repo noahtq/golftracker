@@ -1,9 +1,13 @@
+import re
+import json
+from random import randint
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
+from django.forms import modelformset_factory
 
-from ..models import Course, Tee
+from ..models import Course, Tee, Hole
 from ..views import canEditCourse
-from ..forms import CourseCreateForm, CourseUpdateForm
+from ..forms import CourseCreateForm, CourseUpdateForm, TeeCreateForm
 
 
 class CanEditCourseHelperFunctionTestCase(TestCase):
@@ -373,4 +377,129 @@ class CourseDeleteViewTestCase(TestCase):
         tees = Tee.objects.all()
         self.assertQuerySetEqual(courses, Course.objects.none())
         self.assertQuerySetEqual(tees, Tee.objects.none())
+
+
+class TeeCreateViewTestCase(TestCase):
+    def build_formset_form_data(self, form_number, **data):
+        form = {}
+        for key, value in data.items():
+            form_key = f"form-{form_number}-{key}"
+            form[form_key] = value
+        return form
+    
+    def build_formset_data(self, forms, **common_data):
+        formset_dict = {
+            "form-TOTAL_FORMS": f"{len(forms)}",
+            "form-MAX_NUM_FORMS": "1000",
+            "form-INITIAL_FORMS": "1"
+        }
+        formset_dict.update(common_data)
+        for i, form_data in enumerate(forms):
+            form_dict = self.build_formset_form_data(form_number=i, **form_data)
+            formset_dict.update(form_dict)
+        return formset_dict
+
+    def setUp(self) -> None:
+        user = User.objects.create(username='testuser', password='12345')
+        course = Course.objects.create(name='Cedarholm Golf Course',
+                location='Roseville, MN',
+                creator=user, num_of_holes="09")
+        
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/1/newtee/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/newtee/')
+        self.assertTemplateUsed(response, 'courselibrary/tee_create.html')
+
+    def test_raises_404_if_course_does_not_exist(self):
+        """Check that 404 is thrown if the course doesn't exist"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/5/newtee/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_that_permission_denied_if_cant_edit_course(self):
+        """Check that permission is denied if user does not have permission 
+        to edit course per the canEditCourse() function"""
+        user = User.objects.create(username='wronguser', password='12345')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/newtee/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_that_correct_context_is_passed(self):
+        """Check that the correct information is passed into the context data"""
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/newtee/')
+        self.assertEqual(type(response.context['form']), TeeCreateForm)
+        '''Fix this so that we are testing all of the correct context is passed'''
+        self.assertTrue(response.context['hole_formset'])
+        self.assertEqual(response.context['course'], course)
+
+    def test_that_correct_number_of_hole_fields_are_given(self):
+        """Check that the correct number of fields for holes are given based on
+        the courses number of holes"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/newtee/')
+        matches = re.findall(r'<input type="hidden" name="form-\d-id" id="id_form-\d-id"',
+                   str(response.context['hole_formset']))
+        self.assertEqual(len(matches), 9)
+
+    def test_successful_post_creates_objects_correctly(self):
+        """Check that a successful post makes our tee and hole objects correctly
+        in the database"""
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        client = Client()
+        client.force_login(user)
+        payload = {'name': 'White', 'course_rating': '24.8', 'slope_rating': '69.0',
+                   'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '0'}
+        for i in range(9):
+            payload[f'form-{i}-par'] = '3'
+            payload[f'form-{i}-yards'] = str((i + 1) * 10)
+        client.post('/courselibrary/1/newtee/', payload)
+        tee = Tee.objects.get(course=course)
+        holes = Hole.objects.filter(tees=tee)
+        self.assertEqual(tee.name, 'White')
+        self.assertEqual(tee.course_rating, 24.8)
+        self.assertEqual(tee.slope_rating, 69.0)
+        for i, hole in enumerate(holes):
+            self.assertEqual(hole.number, i + 1)
+            self.assertEqual(hole.par, 3)
+            self.assertEqual(hole.yards, (i + 1) * 10)
+
+
+    def test_successful_post_redirects_to_correct_url(self):
+        """Check that a successful post redirects to the correct url"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'name': 'White', 'course_rating': '24.8', 'slope_rating': '69.0',
+                   'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '0'}
+        for i in range(9):
+            payload[f'form-{i}-par'] = '3'
+            payload[f'form-{i}-yards'] = str((i + 1) * 10)
+        response = client.post('/courselibrary/1/newtee/', payload)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/courselibrary/1/edit/')
+
+
+
+        
+        
+    
     

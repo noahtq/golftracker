@@ -126,8 +126,8 @@ def teeCreate(request, course_id):
             form.save()
 
             hole_instances = hole_formset.save(commit=False)
-            for hole_instance in hole_instances:
-                hole_instance.number = 1
+            for i, hole_instance in enumerate(hole_instances):
+                hole_instance.number = i + 1
                 hole_instance.tees = form.instance
                 hole_instance.save()
 
