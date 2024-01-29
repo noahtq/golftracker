@@ -7,7 +7,7 @@ from django.forms import modelformset_factory
 
 from ..models import Course, Tee, Hole
 from ..views import canEditCourse
-from ..forms import CourseCreateForm, CourseUpdateForm, TeeCreateForm
+from ..forms import CourseCreateForm, CourseUpdateForm, TeeCreateForm, TeeUpdateForm
 
 
 class CanEditCourseHelperFunctionTestCase(TestCase):
@@ -382,7 +382,7 @@ class CourseDeleteViewTestCase(TestCase):
 class TeeCreateViewTestCase(TestCase):
     def setUp(self) -> None:
         user = User.objects.create(username='testuser', password='12345')
-        course = Course.objects.create(name='Cedarholm Golf Course',
+        Course.objects.create(name='Cedarholm Golf Course',
                 location='Roseville, MN',
                 creator=user, num_of_holes="09")
         
@@ -425,7 +425,6 @@ class TeeCreateViewTestCase(TestCase):
         client.force_login(user)
         response = client.get('/courselibrary/1/newtee/')
         self.assertEqual(type(response.context['form']), TeeCreateForm)
-        '''Fix this so that we are testing all of the correct context is passed'''
         self.assertTrue(response.context['hole_formset'])
         self.assertEqual(response.context['course'], course)
 
@@ -478,14 +477,163 @@ class TeeCreateViewTestCase(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/courselibrary/1/edit/')
 
+    def test_incorrect_data_doesnt_post(self):
+        """Check that a post with incorrect data doesn't validate or change
+        our tee and hole objects"""
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        client = Client()
+        client.force_login(user)
+        payload = {'name': 'White', 'course_rating': 'ABC', 'slope_rating': 'ABC',
+                   'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '0'}
+        for i in range(9):
+            payload[f'form-{i}-par'] = '3'
+            payload[f'form-{i}-yards'] = str((i + 1) * 10)
+        client.post('/courselibrary/1/newtee/', payload)
+        tees = Tee.objects.all()
+        holes = Hole.objects.all()
+        self.assertQuerySetEqual(tees, Tee.objects.none())
+        self.assertQuerySetEqual(holes, Hole.objects.none())
+
 
 class teeEditViewTestCase(TestCase):
     def setUp(self) -> None:
-        return super().setUp()
+        user = User.objects.create(username='testuser', password='12345')
+        course = Course.objects.create(name='Cedarholm Golf Course',
+                location='Roseville, MN',
+                creator=user, num_of_holes="09")
+        tee = Tee.objects.create(name='White',
+                                 course=course,
+                                 course_rating=25.8,
+                                 slope_rating=69)
+        for i in range(int(course.num_of_holes)):
+            Hole.objects.create(number=i + 1, par=3, yards=(i + 1) * 10, tees=tee)
 
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/1/edittee/')
+        self.assertEqual(response.status_code, 302)
 
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/edittee/')
+        self.assertTemplateUsed(response, 'courselibrary/tee_edit.html')
 
-        
-        
-    
+    def test_raises_404_if_course_does_not_exist(self):
+        """Check that 404 is thrown if the tee or the course doesn't exist"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/5/edittee/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_that_permission_denied_if_cant_edit_course(self):
+        """Check that permission is denied if user does not have permission 
+        to edit course per the canEditCourse() function"""
+        user = User.objects.create(username='wronguser', password='12345')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/edittee/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_that_correct_context_is_passed(self):
+        """Check that the correct information is passed into the context data"""
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        tee = Tee.objects.get(pk=1)
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/edittee/')
+        self.assertEqual(response.context['tee'], tee)
+        self.assertEqual(type(response.context['form']), TeeUpdateForm)
+        self.assertTrue(response.context['hole_formset'])
+        self.assertEqual(response.context['course'], course)
+
+    def test_that_correct_number_of_hole_fields_are_given(self):
+        """Check that the correct number of fields for holes are given based on
+        the courses number of holes and should be no extra for this view"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/edittee/')
+        matches = re.findall(r'<input type="hidden" name="form-\d-id" value="\d" id="id_form-\d-id">',
+                   str(response.context['hole_formset']))
+        self.assertEqual(len(matches), 9)
+
+    def test_that_correct_initial_data_is_passed_for_hole_formset(self):
+        """Check that the hole formset is passed the correct initial data"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/edittee/')
+        for i in range(9):
+            test_string = r'<input type="number" name="form-\d-yards" value="' + str((i + 1) * 10) + r'" id="id_form-\d-yards">'
+            match = re.findall(test_string, str(response.context['hole_formset']))
+            self.assertTrue(match)
+
+    def test_successful_post_creates_objects_correctly(self):
+        """Check that a successful post alters our tee and hole objects correctly
+        in the database"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'name': 'Red', 'course_rating': '10.0', 'slope_rating': '20.0',
+                   'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '9'}
+        for i in range(9):
+            payload[f'form-{i}-id'] = str(i + 1)
+            payload[f'form-{i}-par'] = '4'
+            payload[f'form-{i}-yards'] = str((i + 1) * 20)
+        client.post('/courselibrary/1/edittee/', payload)
+        tee = Tee.objects.get(pk=1)
+        holes = Hole.objects.filter(tees=tee)
+        self.assertEqual(tee.name, 'Red')
+        self.assertEqual(tee.course_rating, 10.0)
+        self.assertEqual(tee.slope_rating, 20.0)
+        for i, hole in enumerate(holes):
+            self.assertEqual(hole.number, i + 1)
+            self.assertEqual(hole.par, 4)
+            self.assertEqual(hole.yards, (i + 1) * 20)
+
+    def test_successful_post_redirects_to_correct_url(self):
+        """Check that a successful post redirects to the correct url"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'name': 'Red', 'course_rating': '10.0', 'slope_rating': '20.0',
+                   'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '9'}
+        for i in range(9):
+            payload[f'form-{i}-id'] = str(i + 1)
+            payload[f'form-{i}-par'] = '4'
+            payload[f'form-{i}-yards'] = str((i + 1) * 20)
+        response = client.post('/courselibrary/1/edittee/', payload)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/courselibrary/1/edit/')
+
+    def test_incorrect_data_doesnt_post(self):
+        """Check that a post with incorrect data doesn't validate or change
+        our tee and hole objects"""
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        client = Client()
+        client.force_login(user)
+        payload = {'name': 'Red', 'course_rating': 'ABC', 'slope_rating': 'ABC',
+                   'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '9'}
+        for i in range(9):
+            payload[f'form-{i}-id'] = str(i + 1)
+            payload[f'form-{i}-par'] = '4'
+            payload[f'form-{i}-yards'] = str((i + 1) * 20)
+        client.post('/courselibrary/1/edittee/', payload)
+        tee = Tee.objects.get(pk=1)
+        holes = Hole.objects.filter(tees=tee)
+        self.assertEqual(tee.name, 'White')
+        self.assertEqual(tee.course_rating, 25.8)
+        self.assertEqual(tee.slope_rating, 69)
+        for i, hole in enumerate(holes):
+            self.assertEqual(hole.number, i + 1)
+            self.assertEqual(hole.par, 3)
+            self.assertEqual(hole.yards, (i + 1) * 10)
     
