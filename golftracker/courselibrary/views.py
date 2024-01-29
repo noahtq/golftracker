@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.forms import modelformset_factory
 
 from .models import Course, Tee, Hole
-from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreateForm, TeeCreateForm
+from .forms import CourseUpdateForm, TeeUpdateForm, CourseCreateForm, TeeCreateForm
 
 
 #HELPER FUNCTIONS

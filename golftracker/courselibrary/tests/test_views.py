@@ -1,9 +1,6 @@
 import re
-import json
-from random import randint
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
-from django.forms import modelformset_factory
 
 from ..models import Course, Tee, Hole
 from ..views import canEditCourse
