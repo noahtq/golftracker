@@ -380,25 +380,6 @@ class CourseDeleteViewTestCase(TestCase):
 
 
 class TeeCreateViewTestCase(TestCase):
-    def build_formset_form_data(self, form_number, **data):
-        form = {}
-        for key, value in data.items():
-            form_key = f"form-{form_number}-{key}"
-            form[form_key] = value
-        return form
-    
-    def build_formset_data(self, forms, **common_data):
-        formset_dict = {
-            "form-TOTAL_FORMS": f"{len(forms)}",
-            "form-MAX_NUM_FORMS": "1000",
-            "form-INITIAL_FORMS": "1"
-        }
-        formset_dict.update(common_data)
-        for i, form_data in enumerate(forms):
-            form_dict = self.build_formset_form_data(form_number=i, **form_data)
-            formset_dict.update(form_dict)
-        return formset_dict
-
     def setUp(self) -> None:
         user = User.objects.create(username='testuser', password='12345')
         course = Course.objects.create(name='Cedarholm Golf Course',
@@ -496,6 +477,11 @@ class TeeCreateViewTestCase(TestCase):
         response = client.post('/courselibrary/1/newtee/', payload)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/courselibrary/1/edit/')
+
+
+class teeEditViewTestCase(TestCase):
+    def setUp(self) -> None:
+        return super().setUp()
 
 
 
