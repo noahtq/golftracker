@@ -7,19 +7,18 @@ from django.contrib import messages
 from django.forms import modelformset_factory
 
 from .models import Course, Tee, Hole
-from .forms import CourseUpdateForm, TeeUpdateForm, HoleUpdateForm, CourseCreateForm, TeeCreateForm
+from .forms import CourseUpdateForm, TeeUpdateForm, CourseCreateForm, TeeCreateForm
 
 
 #HELPER FUNCTIONS
 
-def canEditCourse(request, course) -> bool:
+def canEditCourse(user, course) -> bool:
     ''' Only allow user to make changes to a course if they
         1. Created the course and the course isn't verified
         2. Are a staff member '''
     
     creator = course.creator
-    user = request.user
-    is_staff = request.user.is_staff
+    is_staff = user.is_staff
     if course.verified:
         return is_staff
     else:
@@ -70,7 +69,7 @@ def courseEdit(request, course_id):
         tees = Tee.objects.filter(course=course)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
 
     if request.method == 'POST':
@@ -97,7 +96,7 @@ def courseDelete(request, course_id):
         course = Course.objects.get(pk=course_id)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
 
     if request.method == "POST":
@@ -113,7 +112,7 @@ def teeCreate(request, course_id):
         course = Course.objects.get(pk=course_id)
     except Course.DoesNotExist:
         raise Http404("Course does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
     
     num_holes = int(course.num_of_holes)
@@ -127,8 +126,8 @@ def teeCreate(request, course_id):
             form.save()
 
             hole_instances = hole_formset.save(commit=False)
-            for hole_instance in hole_instances:
-                hole_instance.number = 1
+            for i, hole_instance in enumerate(hole_instances):
+                hole_instance.number = i + 1
                 hole_instance.tees = form.instance
                 hole_instance.save()
 
@@ -156,7 +155,7 @@ def teeEdit(request, tee_id):
         raise Http404("Course does not exist")
     except Tee.DoesNotExist:
         raise Http404("Tee does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
     
     HoleFormset = modelformset_factory(Hole, fields=('par', 'yards'), extra=0)
@@ -192,7 +191,7 @@ def teeDelete(request, tee_id):
         raise Http404("Course does not exist")
     except Tee.DoesNotExist:
         raise Http404("Tee does not exist")
-    if canEditCourse(request, course) == False:
+    if canEditCourse(request.user, course) == False:
         raise PermissionDenied()
 
     if request.method == "POST":

@@ -1,6 +1,7 @@
 {% extends "rounds/base.html" %}
 {% block content %}
 {% if courses %}
+    <h1>Course Library</h1>
     <a href="{% url 'courselibrary:create' %}"><h2>Create a new course</h2></a>
     {% for course in courses %}
         <a href="{% url 'courselibrary:detail' course.id %}"><h2>{{ course.name }}</h2></a>
