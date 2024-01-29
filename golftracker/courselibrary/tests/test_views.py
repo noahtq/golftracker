@@ -636,4 +636,97 @@ class teeEditViewTestCase(TestCase):
             self.assertEqual(hole.number, i + 1)
             self.assertEqual(hole.par, 3)
             self.assertEqual(hole.yards, (i + 1) * 10)
+
+
+class teeDeleteViewTestCase(TestCase):
+    def setUp(self) -> None:
+        user = User.objects.create(username='testuser', password='12345')
+        course = Course.objects.create(name='Cedarholm Golf Course',
+                location='Roseville, MN',
+                creator=user, num_of_holes="09")
+        tee = Tee.objects.create(name='White',
+                                 course=course,
+                                 course_rating=25.8,
+                                 slope_rating=69)
+        tee2 = Tee.objects.create(name='Red',
+                                 course=course,
+                                 course_rating=25.8,
+                                 slope_rating=69)
+        for i in range(int(course.num_of_holes)):
+            Hole.objects.create(number=i + 1, par=3, yards=(i + 1) * 10, tees=tee)
+        for i in range(int(course.num_of_holes)):
+            Hole.objects.create(number=i + 1, par=3, yards=(i + 1) * 10, tees=tee2)
+
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/courselibrary/1/deletetee/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/deletetee/')
+        self.assertTemplateUsed(response, 'courselibrary/confirm_tee_delete.html')
+
+    def test_raises_404_if_course_or_tee_does_not_exist(self):
+        """Check that 404 is thrown if the tee or the course doesn't exist"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/5/deletetee/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_that_permission_denied_if_cant_edit_course(self):
+        """Check that permission is denied if user does not have permission 
+        to edit course per the canEditCourse() function"""
+        user = User.objects.create(username='wronguser', password='12345')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/deletetee/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_that_correct_context_is_passed(self):
+        """Check that the correct information is passed into the context data"""
+        user = User.objects.get(username='testuser')
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/courselibrary/1/deletetee/')
+        self.assertEqual(response.context['course'], course)
+
+    def test_that_successful_post_deletes_tee_and_hole_objects(self):
+        """Check that a successful post deletes the correct tee and hole
+        objects and does not delete the associated course"""
+        user = User.objects.get(username='testuser')
+        tee = Tee.objects.get(name='White')
+        tee2 = Tee.objects.get(name='Red')
+        client = Client()
+        client.force_login(user)
+        client.post('/courselibrary/1/deletetee/')
+
+        course = Course.objects.get(name='Cedarholm Golf Course')
+        tee_deleted = Tee.objects.filter(name='White')
+        tee_not_deleted = Tee.objects.filter(name='Red')
+        holes_deleted = Hole.objects.filter(tees=tee)
+        holes_not_deleted = Hole.objects.filter(tees=tee2)
+
+        self.assertTrue(course)
+        self.assertFalse(tee_deleted)
+        self.assertTrue(tee_not_deleted)
+        self.assertFalse(holes_deleted)
+        self.assertTrue(holes_not_deleted)
+
+    def test_that_successful_post_redirects_to_correct_url(self):
+        """Check that the user is redirected to the correct url when
+        the course is deleted"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.post('/courselibrary/1/deletetee/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/courselibrary/1/edit/')
+
     
