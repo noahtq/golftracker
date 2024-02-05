@@ -19,7 +19,7 @@ class Round(models.Model):
     public = models.BooleanField(default=False)
 
     def __str__(self):
-        return f'{self.course} at {self.datetime}'
+        return f'{self.course}, Round ID: {self.pk}'
     
 
 class Score(models.Model):
@@ -28,3 +28,6 @@ class Score(models.Model):
     par = models.IntegerField()
     yardage = models.IntegerField()
     score = models.IntegerField()
+
+    def __str__(self):
+        return f'{self.round}, Hole: {self.hole_number}'
