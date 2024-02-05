@@ -2,6 +2,7 @@ import os
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth import get_user
 
 from ..models import Profile
 from ..views import register, profile
@@ -105,3 +106,24 @@ class ProfileViewTestCase(TestCase):
         #Delete test image from media folder once we are done with test
         saved_image_path = os.path.join(os.getcwd(), 'media/profile_pics/test_profile_photo_compressed.jpeg')
         os.remove(saved_image_path)
+
+
+#Django Default View so code coverage for this test case only found in golftracker/urls.py
+class LoginViewTestCase(TestCase):
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        client = Client()
+        response = client.get('/login/')
+        self.assertTemplateUsed(response, 'users/login.html')
+
+
+class LogoutViewTestCase(TestCase):
+    def setUp(self) -> None:
+        self.user = User.objects.create(username='username', password='12345')
+    
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        client = Client()
+        client.force_login(self.user)
+        response = client.post('/logout/')
+        self.assertTemplateUsed(response, 'users/logout.html')
