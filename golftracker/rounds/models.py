@@ -27,7 +27,7 @@ class Score(models.Model):
     hole_number = models.IntegerField()
     par = models.IntegerField()
     yardage = models.IntegerField()
-    score = models.IntegerField()
+    score = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return f'{self.round}, Hole: {self.hole_number}'

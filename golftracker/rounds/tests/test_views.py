@@ -2,9 +2,9 @@ import datetime
 from django.test import TestCase, Client
 from django.contrib.auth.models import User
 
-from ..views import isOwnerOrPublic, isOwner, createRound
+from ..views import isOwnerOrPublic, isOwner, createScoreCard
 from ..models import Round, Score
-from courselibrary.models import Course, Tee
+from courselibrary.models import Course, Tee, Hole
 
 
 class IsOwnerOrPublicHelperFunctionTestCase(TestCase):
@@ -75,6 +75,59 @@ class IsOwnerHelperFunctionTestCase(TestCase):
         self.assertTrue(result)
 
 
+class CreateScoreCardHelperFunctionTestCase(TestCase):
+    def setUp(self) -> None:
+        user = User.objects.create(username='testuser', password='12345')
+        dwan = Course.objects.create(name='Dwan Golf Club',
+                                       location='Bloomington, MN',
+                                       creator=user, num_of_holes="18")
+        tee = Tee.objects.create(name='Woods', course=dwan)
+        for i in range(int(dwan.num_of_holes)):
+            Hole.objects.create(number=i + 1, par=4, yards=(i + 1) * 10, tees=tee)
+        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='F9')
+        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='B9')
+        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='18')
+
+    def test_front_nine_creates_scores_correctly(self):
+        """Testing createScoreCard function with the selection set to front nine"""
+        front_nine_round = Round.objects.get(num_of_holes='F9')
+        tees = Tee.objects.get(pk=1)
+        createScoreCard(front_nine_round, tees)
+        scores = Score.objects.filter(round=front_nine_round)
+        self.assertEqual(len(scores), 9)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, i + 1)
+            self.assertEqual(score.yardage, (i + 1) * 10)
+            self.assertEqual(score.par, 4)
+            self.assertFalse(score.score)
+
+    def test_front_nine_creates_scores_correctly(self):
+        """Testing createScoreCard function with the selection set to back nine"""
+        back_nine_round = Round.objects.get(num_of_holes='B9')
+        tees = Tee.objects.get(pk=1)
+        createScoreCard(back_nine_round, tees)
+        scores = Score.objects.filter(round=back_nine_round)
+        self.assertEqual(len(scores), 9)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, (i + 9) + 1)
+            self.assertEqual(score.yardage, ((i + 9) + 1) * 10)
+            self.assertEqual(score.par, 4)
+            self.assertFalse(score.score)
+
+    def test_eighteen_creates_scores_correctly(self):
+        """Testing createScoreCard function with the selection set to eighteen holes"""
+        eighteen_round = Round.objects.get(num_of_holes='18')
+        tees = Tee.objects.get(pk=1)
+        createScoreCard(eighteen_round, tees)
+        scores = Score.objects.filter(round=eighteen_round)
+        self.assertEqual(len(scores), 18)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, i + 1)
+            self.assertEqual(score.yardage, (i + 1) * 10)
+            self.assertEqual(score.par, 4)
+            self.assertFalse(score.score)
+
+
 class CreateRoundTestCase(TestCase):
     def setUp(self) -> None:
         user = User.objects.create(username='testuser', password='12345')
@@ -84,8 +137,10 @@ class CreateRoundTestCase(TestCase):
         islandlake = Course.objects.create(name='Island Lake',
                                            location='Shoreview, MN',
                                            creator=user, num_of_holes="09")
-        Tee.objects.create(name='White', course=cedarholm)
+        white_tee = Tee.objects.create(name='White', course=cedarholm)
         Tee.objects.create(name='Blue', course=islandlake)
+        for i in range(int(cedarholm.num_of_holes)):
+            Hole.objects.create(number=i + 1, par=3, yards=(i + 1) * 10, tees=white_tee)
 
     def test_rejects_unloggedin_user(self):
         """Check that an unlogged in user is redirected"""
@@ -147,3 +202,25 @@ class CreateRoundTestCase(TestCase):
         client.post('/roundslibrary/create/', payload)
         round = Round.objects.all()
         self.assertQuerySetEqual(round, Round.objects.none())
+
+    def test_scorecard_creation_if_round_is_posted_successfully(self):
+        """When a round is created an associated scorecard should be created as
+        well, for modularity a seperate function is being called to handle that
+        which will have seperate tests. Here we are testing that all of the data is
+        passed to that correctly and the expected objects are created."""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'course': '1',
+                   'tees': '1',
+                   'num_of_holes': 'F9'}
+        client.post('/roundslibrary/create/', payload)
+        round = Round.objects.get(pk=1)
+        scores = Score.objects.filter(round=round).order_by('hole_number')
+        self.assertEqual(len(scores), 9)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, i + 1)
+            self.assertEqual(score.yardage, (i + 1) * 10)
+            self.assertEqual(score.par, 3)
+            self.assertFalse(score.score)
+        

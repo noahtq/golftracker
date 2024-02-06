@@ -7,10 +7,12 @@ from django.views import generic
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib import messages
+from django.http import HttpResponse
 
 from .forms import RoundCreateForm
-from .models import Round
+from .models import Round, Score
 
+'''HELPER FUNCTIONS'''
 
 def isOwnerOrPublic(round, user) -> bool:
     ''' Check if user is the owner of the round or the round is public '''
@@ -23,6 +25,22 @@ def isOwner(round, user) -> bool:
     ''' Check if user is the owner of the round '''
     return user == round.player
 
+
+def createScoreCard(round, tee) -> None:
+    holes_nums = []
+    if round.num_of_holes == 'F9':
+        holes_nums = range(1, 10)
+    elif round.num_of_holes == 'B9':
+        holes_nums = range(10, 19)
+    else:
+        holes_nums = range(1, 19)
+    holes_info = tee.hole_set.all()
+    for i in holes_nums:
+        hole_info = holes_info[i - 1]
+        Score.objects.create(round=round, hole_number=i, par=hole_info.par, yardage=hole_info.yards)
+
+
+'''VIEWS'''
 
 def welcome(request):
     return render(request, 'rounds/welcome.html')
@@ -42,6 +60,16 @@ def createRound(request):
         if form.is_valid():
             form.instance.player = request.user
             form.save()
+
+            #Create associated scorecard with round as a series of score objects
+            round_id = form.instance.pk
+            try:
+                tee = form.instance.tees
+                round = Round.objects.get(pk=round_id)
+                createScoreCard(round, tee)
+            except:
+                return HttpResponse(status=500)
+            
             messages.success(request, f'Round successfully created.')
             return redirect(reverse('rounds:dashboard')) #Once round edit has been created redirect to there
     else:
