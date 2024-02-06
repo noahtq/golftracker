@@ -1,11 +1,14 @@
 from typing import Any
 from django.db.models.query import QuerySet
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views import generic
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
+from django.contrib import messages
+
+from .forms import RoundCreateForm
 from .models import Round
 
 
@@ -30,6 +33,24 @@ def dashboard(request):
     rounds = Round.objects.all()
     context = {"rounds": rounds}
     return render(request, 'rounds/dashboard.html', context)
+
+
+@login_required
+def createRound(request):
+    if request.method == 'POST':
+        form = RoundCreateForm(request.POST)
+        if form.is_valid():
+            form.instance.player = request.user
+            form.save()
+            messages.success(request, f'Round successfully created.')
+            return redirect(reverse('rounds:dashboard')) #Once round edit has been created redirect to there
+    else:
+        form = RoundCreateForm()
+
+    context = {
+        'form': form
+    }
+    return render(request, 'rounds/create_round.html', context)
 
 
 class RoundListView(LoginRequiredMixin, generic.ListView):
