@@ -1,10 +1,28 @@
 {% extends "rounds/base.html" %}
 {% block content %}
-    {% if rounds %}
-        {% for round in rounds %}
-            <h1>{{ round.course.name }} - {{ round.datetime }}</h1>
+<form method="POST">
+    {% csrf_token %}
+    <fieldset>
+        <legend>Round</legend>
+        {% for score in scores %}
+            <label for="id_form-{{ forloop.counter0 }}-score"># {{ score.hole_number }}</label>
+            <label for="id_form-{{ forloop.counter0 }}-score">Par: {{ score.par }}</label>
+            <label for="id_form-{{ forloop.counter0 }}-score">Yards: {{ score.yardage }}</label>
         {% endfor %}
-    {% else %}
-        <h1>Nothing to see here</h1>
-    {% endif %}
+        {{ form.as_p }}
+        {{ score_formset.management_form }}
+            {% for form in score_formset %}
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
+                {% endfor %}
+            {{ form.errors }}
+            <ul>
+                <li>Score: {{ form.score }}</li>
+            </ul>
+            {% endfor %}
+    </fieldset>
+    <button type="submit">Update</button>
+</form>
+<a href="{% url 'rounds:delete' round.id %}">Delete Round</a>
+
 {% endblock content %}

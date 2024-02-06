@@ -246,9 +246,12 @@ class ScoreEditViewTestCase(TestCase):
         tee = Tee.objects.create(name='Woods', course=dwan)
         for i in range(int(dwan.num_of_holes)):
             Hole.objects.create(number=i + 1, par=4, yards=(i + 1) * 10, tees=tee)
-        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='F9')
-        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='B9')
-        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='18')
+        round_f9 = Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='F9')
+        round_b9 = Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='B9')
+        round_18 = Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='18')
+        createScoreCard(round_f9, tee)
+        createScoreCard(round_b9, tee)
+        createScoreCard(round_18, tee)
 
     def test_rejects_unloggedin_user(self):
         """Check that an unlogged in user is redirected"""
@@ -280,4 +283,99 @@ class ScoreEditViewTestCase(TestCase):
         client.force_login(wrong_user)
         response = client.get('/roundslibrary/1/scores/')
         self.assertEqual(response.status_code, 403)
+
+    def test_that_correct_context_is_passed(self):
+        """Check that we are passing the correct context to our template"""
+        round = Round.objects.get(num_of_holes='F9')
+        scores = Score.objects.filter(round=round)
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/roundslibrary/1/scores/')
+        self.assertQuerySetEqual(response.context['scores'], scores, ordered=False)
+        self.assertEqual(response.context['round'], round)
+        self.assertTrue(response.context['score_formset'])
         
+    def test_successful_post_creates_objects_correctly_front_nine(self):
+        """Check that a successful post alters our scores objects correctly
+        in the database, using front nine round"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '9'}
+        for i in range(9):
+            payload[f'form-{i}-id'] = str(i + 1)
+            payload[f'form-{i}-score'] = str(i)
+        client.post('/roundslibrary/1/scores/', payload)
+        round = Round.objects.get(num_of_holes='F9')
+        scores = Score.objects.filter(round=round)
+        self.assertEqual(len(scores), 9)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, i + 1)
+            self.assertEqual(score.score, i)
+
+    def test_successful_post_creates_objects_correctly_back_nine(self):
+        """Check that a successful post alters our scores objects correctly
+        in the database, using back nine round"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'form-TOTAL_FORMS': '9', 'form-INITIAL_FORMS': '9'}
+        for i in range(9):
+            payload[f'form-{i}-id'] = str((i + 9) + 1)
+            payload[f'form-{i}-score'] = str(i)
+        client.post('/roundslibrary/2/scores/', payload)
+        round = Round.objects.get(num_of_holes='B9')
+        scores = Score.objects.filter(round=round)
+        self.assertEqual(len(scores), 9)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, (i + 9) + 1)
+            self.assertEqual(score.score, i)
+
+    def test_successful_post_creates_objects_correctly_full_eighteen(self):
+        """Check that a successful post alters our scores objects correctly
+        in the database, using full eighteen"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'form-TOTAL_FORMS': '18', 'form-INITIAL_FORMS': '18'}
+        for i in range(18):
+            payload[f'form-{i}-id'] = str((i + 18) + 1)
+            payload[f'form-{i}-score'] = str(i % 3)
+        client.post('/roundslibrary/3/scores/', payload)
+        round = Round.objects.get(num_of_holes='18')
+        scores = Score.objects.filter(round=round)
+        self.assertEqual(len(scores), 18)
+        for i, score in enumerate(scores):
+            self.assertEqual(score.hole_number, i + 1)
+            self.assertEqual(score.score, i % 3)
+
+    def test_unsuccessful_post_does_not_alter_objects(self):
+        """Check that a unsuccessful doesn't alter anything"""
+        pre_round = Round.objects.get(num_of_holes='18')
+        pre_scores = Score.objects.filter(round=pre_round)
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'form-TOTAL_FORMS': '18', 'form-INITIAL_FORMS': '18'}
+        for i in range(18):
+            payload[f'form-{i}-id'] = str((i + 18) + 1)
+            payload[f'form-{i}-score'] = str('a')
+        client.post('/roundslibrary/3/scores/', payload)
+        round = Round.objects.get(num_of_holes='18')
+        scores = Score.objects.filter(round=round)
+        self.assertEqual(pre_round, round)
+        self.assertQuerySetEqual(pre_scores, scores, ordered=False)
+
+    def test_successful_post_redirects_to_correct_url(self):
+        """Check that a successful post redirects to the correct url"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'form-TOTAL_FORMS': '18', 'form-INITIAL_FORMS': '18'}
+        for i in range(18):
+            payload[f'form-{i}-id'] = str((i + 18) + 1)
+            payload[f'form-{i}-score'] = str(i % 3)
+        response = client.post('/roundslibrary/3/scores/', payload)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/roundslibrary/3/')

@@ -8,6 +8,7 @@ from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib import messages
 from django.http import HttpResponse, Http404
+from django.forms import modelformset_factory
 
 from .forms import RoundCreateForm
 from .models import Round, Score
@@ -85,12 +86,30 @@ def createRound(request):
 def scoreEdit(request, round_id):
     try:
         round = Round.objects.get(pk=round_id)
+        scores = round.score_set.all()
     except Round.DoesNotExist:
         raise Http404("Round does not exist")
     if round.player != request.user:
         raise PermissionDenied()
     
-    return render(request, 'rounds/score_edit.html')
+    ScoreFormset = modelformset_factory(Score, fields=('score',), extra=0)
+
+    if request.method == 'POST':
+        score_formset = ScoreFormset(request.POST, queryset=Score.objects.filter(round=round))
+        if score_formset.is_valid():
+            score_formset.save()
+            messages.success(request, f'Round successfully saved.')
+            return redirect(reverse('rounds:detail', args=[str(round.pk)]))
+    else:
+        score_formset = ScoreFormset(queryset=Score.objects.filter(round=round))
+
+    context = {
+        'scores': scores,
+        'round': round,
+        'score_formset': score_formset
+    }
+
+    return render(request, 'rounds/score_edit.html', context)
 
 
 class RoundListView(LoginRequiredMixin, generic.ListView):
