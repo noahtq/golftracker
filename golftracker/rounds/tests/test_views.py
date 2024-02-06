@@ -223,4 +223,61 @@ class CreateRoundTestCase(TestCase):
             self.assertEqual(score.yardage, (i + 1) * 10)
             self.assertEqual(score.par, 3)
             self.assertFalse(score.score)
+
+    def test_user_is_redirected_to_correct_url_successfully(self):
+        """Ensure that user is redirected to the appropriate score edit page
+        when a round is created successfully"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        payload = {'course': '1',
+                   'tees': '1',
+                   'num_of_holes': 'F9'}
+        response = client.post('/roundslibrary/create/', payload)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/roundslibrary/1/scores/')
+
+class ScoreEditViewTestCase(TestCase):
+    def setUp(self) -> None:
+        user = User.objects.create(username='testuser', password='12345')
+        dwan = Course.objects.create(name='Dwan Golf Club',
+                                       location='Bloomington, MN',
+                                       creator=user, num_of_holes="18")
+        tee = Tee.objects.create(name='Woods', course=dwan)
+        for i in range(int(dwan.num_of_holes)):
+            Hole.objects.create(number=i + 1, par=4, yards=(i + 1) * 10, tees=tee)
+        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='F9')
+        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='B9')
+        Round.objects.create(player=user, course=dwan, tees=tee, num_of_holes='18')
+
+    def test_rejects_unloggedin_user(self):
+        """Check that an unlogged in user is redirected"""
+        client = Client()
+        response = client.get('/roundslibrary/1/scores/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_renders_correct_template(self):
+        """Check that the correct template is rendered"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/roundslibrary/1/scores/')
+        self.assertTemplateUsed(response, 'rounds/score_edit.html')
+
+    def test_raises_404_if_round_does_not_exist(self):
+        """Check that 404 is thrown if the round doesn't exist"""
+        user = User.objects.get(username='testuser')
+        client = Client()
+        client.force_login(user)
+        response = client.get('/roundslibrary/99/scores/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_raises_permission_denied_if_user_is_not_round_owner(self):
+        """Check that a user trying to access the page who is not the rounds
+        associated player is rejected"""
+        wrong_user = User.objects.create(username='wronguser', password='12345')
+        client = Client()
+        client.force_login(wrong_user)
+        response = client.get('/roundslibrary/1/scores/')
+        self.assertEqual(response.status_code, 403)
         

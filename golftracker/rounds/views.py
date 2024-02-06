@@ -7,7 +7,7 @@ from django.views import generic
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 
 from .forms import RoundCreateForm
 from .models import Round, Score
@@ -71,7 +71,7 @@ def createRound(request):
                 return HttpResponse(status=500)
             
             messages.success(request, f'Round successfully created.')
-            return redirect(reverse('rounds:dashboard')) #Once round edit has been created redirect to there
+            return redirect(reverse('rounds:score-edit', kwargs={ 'round_id': round_id }))
     else:
         form = RoundCreateForm()
 
@@ -79,6 +79,18 @@ def createRound(request):
         'form': form
     }
     return render(request, 'rounds/create_round.html', context)
+
+
+@login_required
+def scoreEdit(request, round_id):
+    try:
+        round = Round.objects.get(pk=round_id)
+    except Round.DoesNotExist:
+        raise Http404("Round does not exist")
+    if round.player != request.user:
+        raise PermissionDenied()
+    
+    return render(request, 'rounds/score_edit.html')
 
 
 class RoundListView(LoginRequiredMixin, generic.ListView):
